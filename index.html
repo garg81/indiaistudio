@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indi AI Studio – AI Product Shoot Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-cyan: #00ffff;
+            --neon-magenta: #ff00ff;
+            --dark-bg: #03001C;
+            --panel-bg: rgba(30, 30, 55, 0.4);
+            --glow-shadow: 0 0 5px var(--neon-cyan), 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan), 0 0 40px var(--neon-cyan);
+            --glow-shadow-magenta: 0 0 5px var(--neon-magenta), 0 0 10px var(--neon-magenta), 0 0 20px var(--neon-magenta), 0 0 40px var(--neon-magenta);
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            font-family: 'Poppins', sans-serif;
+            color: #f0f0f0;
+            overflow-x: hidden;
+        }
+
+        #galaxy-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .main-container {
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            background: var(--panel-bg);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 1.5rem;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .neon-text { text-shadow: 0 0 5px var(--neon-cyan), 0 0 10px var(--neon-cyan); }
+        .neon-button { background-color: transparent; border: 2px solid var(--neon-cyan); color: var(--neon-cyan); text-shadow: 0 0 2px var(--neon-cyan); transition: all 0.3s ease; box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.3), 0 0 10px rgba(0, 255, 255, 0.3); }
+        .neon-button:hover, .neon-button:focus { color: var(--dark-bg); background-color: var(--neon-cyan); box-shadow: var(--glow-shadow); }
+        .neon-button-magenta { border-color: var(--neon-magenta); color: var(--neon-magenta); text-shadow: 0 0 2px var(--neon-magenta); box-shadow: inset 0 0 10px rgba(255, 0, 255, 0.3), 0 0 10px rgba(255, 0, 255, 0.3); }
+        .neon-button-magenta:hover, .neon-button-magenta:focus { color: var(--dark-bg); background-color: var(--neon-magenta); box-shadow: var(--glow-shadow-magenta); }
+        .neon-button:disabled { cursor: not-allowed; opacity: 0.5; }
+        .neon-button-magenta:disabled { cursor: not-allowed; opacity: 0.5; }
+
+
+        #prompt-box, #negative-prompt-box { background-color: rgba(10, 10, 25, 0.5); border-radius: 0.75rem; transition: all 0.3s ease; }
+        #prompt-box { border: 2px solid var(--neon-cyan); color: #f0f0f0; box-shadow: inset 0 0 15px rgba(0, 255, 255, 0.4); }
+        #prompt-box:focus { outline: none; box-shadow: var(--glow-shadow); border-color: var(--neon-cyan); }
+        #negative-prompt-box { border: 2px solid var(--neon-magenta); color: #f0f0f0; box-shadow: inset 0 0 15px rgba(255, 0, 255, 0.4); }
+        #negative-prompt-box:focus { outline: none; box-shadow: var(--glow-shadow-magenta); border-color: var(--neon-magenta); }
+
+        .file-upload-wrapper { border: 2px dashed rgba(0, 255, 255, 0.4); transition: all 0.3s ease; }
+        .file-upload-wrapper:hover { border-color: var(--neon-cyan); background-color: rgba(0, 255, 255, 0.05); }
+        .file-upload-wrapper input[type="file"] { display: none; }
+        
+        /* Modal */
+        .modal { backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); background-color: rgba(10, 0, 20, 0.8); }
+        .stock-image-item { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .stock-image-item:hover { transform: scale(1.05); box-shadow: 0 0 15px var(--neon-cyan); }
+
+        /* Before/After Slider */
+        #comparison-container { position: relative; overflow: hidden; border-radius: 0.75rem; border: 1px solid var(--neon-cyan); }
+        #comparison-container img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        #generated-image-container { position: absolute; top: 0; left: 0; height: 100%; width: 50%; overflow: hidden; resize: horizontal; }
+        #comparison-slider { position: absolute; top: 0; bottom: 0; left: 50%; width: 4px; background: var(--neon-cyan); cursor: ew-resize; transform: translateX(-50%); box-shadow: var(--glow-shadow); }
+        #comparison-slider::before { content: '◀'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--neon-cyan); color: var(--dark-bg); border-radius: 50%; width: 30px; height: 30px; text-align: center; line-height: 30px; font-size: 16px; border: 2px solid var(--dark-bg); }
+        #comparison-slider::after { content: '▶'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--neon-cyan); color: var(--dark-bg); border-radius: 50%; width: 30px; height: 30px; text-align: center; line-height: 30px; font-size: 16px; border: 2px solid var(--dark-bg); clip-path: inset(0 0 0 50%); }
+
+        .loader { border: 4px solid rgba(255, 255, 255, 0.2); border-left-color: var(--neon-cyan); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="min-h-screen w-full">
+    <canvas id="galaxy-bg"></canvas>
+
+    <div class="relative min-h-screen flex flex-col items-center justify-center p-4 md:p-8">
+        <main class="main-container w-full max-w-7xl mx-auto p-6 md:p-10 rounded-3xl">
+            <header class="text-center mb-8">
+                <h1 class="text-4xl md:text-6xl font-bold neon-text bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-fuchsia-500">Indi AI Studio</h1>
+                <p class="text-lg md:text-xl text-gray-300 mt-2">Professional AI Product Shoot Studio</p>
+            </header>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Left Column: Controls -->
+                <div class="flex flex-col space-y-6">
+                    <div>
+                        <h2 class="text-2xl font-semibold mb-4 neon-text">1. Upload Assets</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="flex flex-col gap-2">
+                                <div class="file-upload-wrapper p-4 rounded-xl text-center cursor-pointer" onclick="document.getElementById('model-upload').click()">
+                                    <input type="file" id="model-upload" accept="image/*">
+                                    <img id="model-preview" src="https://placehold.co/400x600/1E1E37/00FFFF?text=Upload+Model" class="w-full h-48 object-cover rounded-lg mb-2" alt="Model Preview">
+                                    <span class="text-cyan-300">Upload Model</span>
+                                </div>
+                                <button id="stock-model-btn" class="w-full neon-button rounded-lg py-2">Or Select Stock Model</button>
+                            </div>
+                            <div class="file-upload-wrapper p-4 rounded-xl text-center cursor-pointer" onclick="document.getElementById('product-upload').click()">
+                                <input type="file" id="product-upload" accept="image/*">
+                                <img id="product-preview" src="https://placehold.co/400x400/1E1E37/FF00FF?text=Upload+Product" class="w-full h-48 object-cover rounded-lg mb-2" alt="Product Preview">
+                                <span class="text-fuchsia-400">Upload Product</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-2xl font-semibold neon-text">2. Describe Your Vision</h2>
+                            <button id="inspire-me-btn" class="neon-button text-sm rounded-full px-3 py-1">✨ Inspire Me</button>
+                        </div>
+                        <textarea id="prompt-box" rows="4" class="w-full p-4 text-base" placeholder="e.g., A model holding the bottle, standing on a sunny beach with waves in the background..."></textarea>
+                        <h3 class="text-xl font-semibold mt-4 mb-2 text-fuchsia-400">Negative Prompt (what to avoid)</h3>
+                        <textarea id="negative-prompt-box" rows="2" class="w-full p-4 text-base" placeholder="e.g., blurry, cartoon, extra fingers, bad lighting..."></textarea>
+                    </div>
+
+                    <div>
+                        <h2 class="text-2xl font-semibold mb-4 neon-text">3. Choose Your Style</h2>
+                        <div class="flex flex-wrap gap-3 mb-4">
+                            <button class="style-preset neon-button rounded-full px-4 py-2" data-prompt=", professional studio lighting, clean background, high-end commercial photography">Professional Studio</button>
+                            <button class="style-preset neon-button rounded-full px-4 py-2" data-prompt=", outdoor lifestyle, natural sunlight, candid shot, beautiful scenery">Outdoor Lifestyle</button>
+                            <button class="style-preset neon-button rounded-full px-4 py-2" data-prompt=", vibrant colors, trendy, social media aesthetic, eye-catching composition">Social Media</button>
+                            <button class="style-preset neon-button rounded-full px-4 py-2" data-prompt=", on a pure white background, e-commerce, product focus, Amazon style">E-commerce</button>
+                        </div>
+                        <select id="image-size" class="w-full p-3 rounded-lg bg-gray-800 border border-cyan-500 text-white">
+                            <option value="16-9">16:9 (Landscape)</option>
+                            <option value="9-16">9:16 (Portrait/Reel)</option>
+                            <option value="1-1" selected>1:1 (Square)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Right Column: Output -->
+                <div class="flex flex-col space-y-6">
+                    <h2 class="text-2xl font-semibold neon-text text-center lg:text-left">4. AI Generated Result</h2>
+                    <div id="output-container" class="w-full">
+                         <div id="loading-spinner" class="absolute inset-0 flex-col items-center justify-center bg-black bg-opacity-70 hidden z-20 rounded-xl">
+                            <div class="loader"></div>
+                            <p id="loading-text" class="mt-4 text-lg text-cyan-300">Generating your vision...</p>
+                        </div>
+                        <div id="comparison-container" class="hidden">
+                            <img id="original-product-comparison" src="" alt="Original Product">
+                            <div id="generated-image-container">
+                                <img id="generated-image" src="" alt="Generated Photoshoot">
+                            </div>
+                            <div id="comparison-slider"></div>
+                        </div>
+                        <img id="placeholder-image" src="https://placehold.co/800x800/03001C/00FFFF?text=Your+AI+Photoshoot+Will+Appear+Here" class="w-full rounded-lg" alt="Placeholder">
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <button id="generate-btn" class="w-full neon-button-magenta text-xl font-bold py-4 px-6 rounded-xl">Generate Photoshoot</button>
+                        <button id="download-btn" class="w-full neon-button text-xl font-bold py-4 px-6 rounded-xl hidden">Download Image</button>
+                    </div>
+                     <div id="error-message" class="text-red-400 text-center hidden p-3 bg-red-900 bg-opacity-50 rounded-lg"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Stock Model Modal -->
+    <div id="stock-model-modal" class="modal fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="main-container w-full max-w-4xl h-full max-h-[80vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b border-cyan-500/50">
+                <h2 class="text-2xl neon-text">Select a Stock Model</h2>
+                <button id="close-modal-btn" class="text-3xl text-fuchsia-400">&times;</button>
+            </div>
+            <div id="stock-image-gallery" class="p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto">
+                <!-- Stock images will be populated here -->
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- Galaxy Particle Animation (Same as before) ---
+        const canvas = document.getElementById('galaxy-bg');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        let particlesArray;
+        const mouse = { x: null, y: null, radius: (canvas.height / 120) * (canvas.width / 120) };
+        window.addEventListener('mousemove', e => { mouse.x = e.x; mouse.y = e.y; });
+        class Particle {
+            constructor(x, y, dX, dY, s, c) { this.x = x; this.y = y; this.directionX = dX; this.directionY = dY; this.size = s; this.color = c; }
+            draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false); ctx.fillStyle = 'rgba(0, 255, 255, 0.5)'; ctx.fill(); }
+            update() {
+                if (this.x > canvas.width || this.x < 0) this.directionX = -this.directionX;
+                if (this.y > canvas.height || this.y < 0) this.directionY = -this.directionY;
+                let dx = mouse.x - this.x; let dy = mouse.y - this.y; let distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < mouse.radius + this.size) {
+                    if (mouse.x < this.x && this.x < canvas.width - this.size * 10) this.x += 5;
+                    if (mouse.x > this.x && this.x > this.size * 10) this.x -= 5;
+                    if (mouse.y < this.y && this.y < canvas.height - this.size * 10) this.y += 5;
+                    if (mouse.y > this.y && this.y > this.size * 10) this.y -= 5;
+                }
+                this.x += this.directionX;
+                this.y += this.directionY;
+                this.draw();
+            }
+        }
+        function init() {
+            particlesArray = []; let num = (canvas.height * canvas.width) / 9000;
+            for (let i = 0; i < num; i++) {
+                let s = (Math.random() * 2) + 1; let x = (Math.random() * ((innerWidth - s * 2) - (s * 2)) + s * 2); let y = (Math.random() * ((innerHeight - s * 2) - (s * 2)) + s * 2);
+                let dX = (Math.random() * 0.4) - 0.2; let dY = (Math.random() * 0.4) - 0.2; particlesArray.push(new Particle(x, y, dX, dY, s, '#8C5523'));
+            }
+        }
+        function connect() {
+            let opacity = 1;
+            for (let a = 0; a < particlesArray.length; a++) {
+                for (let b = a; b < particlesArray.length; b++) {
+                    let distance = ((particlesArray[a].x - particlesArray[b].x) * (particlesArray[a].x - particlesArray[b].x)) + ((particlesArray[a].y - particlesArray[b].y) * (particlesArray[a].y - particlesArray[b].y));
+                    if (distance < (canvas.width / 7) * (canvas.height / 7)) {
+                        opacity = 1 - (distance / 20000); ctx.strokeStyle = `rgba(0, 255, 255, ${opacity})`; ctx.lineWidth = 1;
+                        ctx.beginPath(); ctx.moveTo(particlesArray[a].x, particlesArray[a].y); ctx.lineTo(particlesArray[b].x, particlesArray[b].y); ctx.stroke();
+                    }
+                }
+            }
+        }
+        function animate() { requestAnimationFrame(animate); ctx.clearRect(0, 0, innerWidth, innerHeight); particlesArray.forEach(p => p.update()); connect(); }
+        window.addEventListener('resize', () => { canvas.width = innerWidth; canvas.height = innerHeight; mouse.radius = ((canvas.height / 120) * (canvas.width / 120)); init(); });
+        window.addEventListener('mouseout', () => { mouse.x = undefined; mouse.y = undefined; });
+        init(); animate();
+
+        // --- App Functionality ---
+        const modelUpload = document.getElementById('model-upload');
+        const productUpload = document.getElementById('product-upload');
+        const modelPreview = document.getElementById('model-preview');
+        const productPreview = document.getElementById('product-preview');
+        const promptBox = document.getElementById('prompt-box');
+        const negativePromptBox = document.getElementById('negative-prompt-box');
+        const stylePresets = document.querySelectorAll('.style-preset');
+        const imageSizeSelector = document.getElementById('image-size');
+        const generateBtn = document.getElementById('generate-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const loadingText = document.getElementById('loading-text');
+        const errorMessage = document.getElementById('error-message');
+        
+        // Output elements
+        const placeholderImage = document.getElementById('placeholder-image');
+        const comparisonContainer = document.getElementById('comparison-container');
+        const originalProductComparison = document.getElementById('original-product-comparison');
+        const generatedImageContainer = document.getElementById('generated-image-container');
+        const generatedImage = document.getElementById('generated-image');
+        const comparisonSlider = document.getElementById('comparison-slider');
+
+        // New Feature Elements
+        const stockModelBtn = document.getElementById('stock-model-btn');
+        const stockModelModal = document.getElementById('stock-model-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const stockImageGallery = document.getElementById('stock-image-gallery');
+        const inspireMeBtn = document.getElementById('inspire-me-btn');
+
+        let modelFileBase64 = null;
+        let productFileBase64 = null;
+        let productObjectURL = null;
+
+        // --- Event Listeners ---
+        modelUpload.addEventListener('change', (e) => handleFileUpload(e, 'model'));
+        productUpload.addEventListener('change', (e) => handleFileUpload(e, 'product'));
+        stylePresets.forEach(button => button.addEventListener('click', () => { promptBox.value += button.dataset.prompt; promptBox.focus(); }));
+        generateBtn.addEventListener('click', handleGenerate);
+        downloadBtn.addEventListener('click', downloadImage);
+        stockModelBtn.addEventListener('click', () => stockModelModal.classList.remove('hidden'));
+        closeModalBtn.addEventListener('click', () => stockModelModal.classList.add('hidden'));
+        inspireMeBtn.addEventListener('click', inspireMe);
+        
+        // Robust file handling to prevent permission errors
+        async function handleFileUpload(e, type) {
+            const file = e.target.files?.[0];
+            if (!file) return;
+
+            const previewEl = type === 'model' ? modelPreview : productPreview;
+            let tempObjectURL = null;
+
+            try {
+                tempObjectURL = URL.createObjectURL(file);
+                previewEl.src = tempObjectURL;
+
+                const base64 = await fileToBase64(file);
+
+                if (type === 'model') {
+                    modelFileBase64 = base64;
+                    URL.revokeObjectURL(tempObjectURL);
+                } else {
+                    productFileBase64 = base64;
+                    if (productObjectURL) {
+                        URL.revokeObjectURL(productObjectURL); 
+                    }
+                    productObjectURL = tempObjectURL; 
+                }
+                showError(null);
+
+            } catch (error) {
+                console.error(`Error processing file:`, error);
+                showError(`Failed to read the selected file. It might be corrupt or protected. Please try another image.`);
+                previewEl.src = `https://placehold.co/400x400/1E1E37/FF0000?text=Error`;
+                if (tempObjectURL) {
+                    URL.revokeObjectURL(tempObjectURL);
+                }
+            }
+        }
+
+        // --- Stock Models ---
+        const stockModels = [
+            'https://images.pexels.com/photos/3775087/pexels-photo-3775087.jpeg?auto=compress&cs=tinysrgb&w=800',
+            'https://images.pexels.com/photos/3763188/pexels-photo-3763188.jpeg?auto=compress&cs=tinysrgb&w=800',
+            'https://images.pexels.com/photos/2100063/pexels-photo-2100063.jpeg?auto=compress&cs=tinysrgb&w=800',
+            'https://images.pexels.com/photos/2787341/pexels-photo-2787341.jpeg?auto=compress&cs=tinysrgb&w=800',
+            'https://images.pexels.com/photos/3777943/pexels-photo-3777943.jpeg?auto=compress&cs=tinysrgb&w=800',
+            'https://images.pexels.com/photos/1382731/pexels-photo-1382731.jpeg?auto=compress&cs=tinysrgb&w=800',
+            'https://images.pexels.com/photos/1848565/pexels-photo-1848565.jpeg?auto=compress&cs=tinysrgb&w=800',
+            'https://images.pexels.com/photos/2897883/pexels-photo-2897883.jpeg?auto=compress&cs=tinysrgb&w=800',
+        ];
+
+        stockModels.forEach(url => {
+            const img = document.createElement('img');
+            img.src = url;
+            img.crossOrigin = "anonymous";
+            img.className = 'stock-image-item w-full h-auto object-cover rounded-lg cursor-pointer';
+            img.alt = 'Stock Model';
+            img.onclick = () => selectStockModel(url);
+            stockImageGallery.appendChild(img);
+        });
+
+        async function selectStockModel(url) {
+            try {
+                const response = await fetch(url);
+                const blob = await response.blob();
+                modelFileBase64 = await fileToBase64(blob);
+                modelPreview.src = url;
+                stockModelModal.classList.add('hidden');
+                showError(null);
+            } catch (error) {
+                console.error("Error fetching stock model:", error);
+                showError("Could not load the selected stock model.");
+            }
+        }
+
+        // --- Inspire Me ---
+        const prompts = [
+            "A futuristic cyberpunk cityscape at night, with the model holding the product which is glowing with neon light.",
+            "A serene, minimalist zen garden. The model is peacefully presenting the product on a smooth stone.",
+            "An adventurous scene on a snowy mountain peak. The model is taking a break, using the product.",
+            "A vibrant, colorful pop-art background. The model has a playful expression and is interacting with the product.",
+            "An elegant, luxurious setting, like a ballroom with chandeliers. The model is dressed formally, showcasing the product."
+        ];
+        function inspireMe() {
+            promptBox.value = prompts[Math.floor(Math.random() * prompts.length)];
+        }
+
+        // --- Core AI Generation ---
+        async function handleGenerate() {
+            if (!modelFileBase64 || !productFileBase64) {
+                showError("Please upload both a model and a product image.");
+                return;
+            }
+            if (!promptBox.value.trim()) {
+                showError("Please describe your vision in the prompt box.");
+                return;
+            }
+
+            setLoading(true);
+            showError(null);
+
+            try {
+                const fullPrompt = `${promptBox.value}. Negative prompt (avoid these): ${negativePromptBox.value}`;
+                const generatedBase64 = await callImageAI(fullPrompt, modelFileBase64, productFileBase64);
+
+                if (generatedBase64) {
+                    const imageUrl = `data:image/png;base64,${generatedBase64}`;
+                    generatedImage.src = imageUrl;
+                    originalProductComparison.src = productObjectURL;
+                    
+                    placeholderImage.classList.add('hidden');
+                    comparisonContainer.classList.remove('hidden');
+                    downloadBtn.classList.remove('hidden');
+                } else {
+                    showError("The AI couldn't generate an image. Please try a different prompt.");
+                }
+
+            } catch (error) {
+                console.error("Error during generation:", error);
+                showError(`An error occurred: ${error.message}.`);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function callImageAI(userPrompt, modelBase64, productBase64, retries = 3, delay = 1000) {
+            // *** MODIFICATION START ***
+            // The API key is an empty string. The execution environment will handle authentication.
+            const apiKey = ""; 
+            // *** MODIFICATION END ***
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`;
+            
+            const systemInstruction = `Generate a new, single, cohesive, photorealistic photograph. Use the model from the first image and the product from the second image. 
+            The final image should NOT look like a collage, a simple composite, or two images stuck together. It must be one seamless scene.
+            Your task is to creatively and realistically integrate the product into the model's environment based on the user's request.
+            Pay extremely close attention to matching the lighting, shadows, perspective, and overall style of the model's photo.
+            User's creative request: "${userPrompt}"`;
+
+            const payload = {
+                contents: [{
+                    parts: [
+                        { text: systemInstruction },
+                        { inlineData: { mimeType: "image/jpeg", data: modelBase64 } },
+                        { inlineData: { mimeType: "image/jpeg", data: productBase64 } }
+                    ]
+                }],
+                generationConfig: { responseModalities: ['IMAGE'] },
+            };
+
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if (!response.ok) {
+                        const errorBody = await response.json();
+                        throw new Error(`API Error: ${response.status} - ${errorBody.error?.message || 'Unknown error'}`);
+                    }
+                    const result = await response.json();
+                    const base64Data = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+                    if (base64Data) return base64Data;
+                    
+                    const finishReason = result?.candidates?.[0]?.finishReason;
+                    if(finishReason === 'SAFETY' || finishReason === 'RECITATION') throw new Error(`Generation failed due to safety filters (${finishReason}). Try a different prompt.`);
+                    throw new Error("No image data found in the AI response.");
+                } catch (error) {
+                    console.error(`Attempt ${i + 1} failed:`, error);
+                    if (i === retries - 1) throw error;
+                    await new Promise(res => setTimeout(res, delay * Math.pow(2, i)));
+                }
+            }
+        }
+        
+        // --- UI & Helpers ---
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = (err) => reject(err);
+            });
+        }
+        
+        function setLoading(isLoading) {
+            generateBtn.disabled = isLoading;
+            if (isLoading) {
+                loadingSpinner.classList.remove('hidden');
+                loadingSpinner.classList.add('flex');
+                generateBtn.textContent = 'Generating...';
+            } else {
+                loadingSpinner.classList.add('hidden');
+                loadingSpinner.classList.remove('flex');
+                generateBtn.textContent = 'Generate Photoshoot';
+            }
+        }
+        
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.toggle('hidden', !message);
+        }
+        
+        function downloadImage() {
+            const link = document.createElement('a');
+            link.href = generatedImage.src;
+            link.download = 'Indi-AI-Studio-Photoshoot.png';
+            link.click();
+        }
+
+        // --- Before/After Slider Logic ---
+        let isDragging = false;
+        comparisonSlider.addEventListener('mousedown', () => { isDragging = true; });
+        document.addEventListener('mouseup', () => { isDragging = false; });
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const rect = comparisonContainer.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            if (x < 0) x = 0;
+            if (x > rect.width) x = rect.width;
+            const percentage = (x / rect.width) * 100;
+            comparisonSlider.style.left = `${percentage}%`;
+            generatedImageContainer.style.width = `${percentage}%`;
+        });
+    </script>
+</body>
+</html>
+
+
